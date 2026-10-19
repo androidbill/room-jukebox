@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#111827" />
+    <meta name="description" content="A shared YouTube jukebox queue for your room." />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+    <title>Room Jukebox</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="./" aria-label="Room Jukebox home">
+        <span class="brand-icon">♫</span><span>Room Jukebox</span>
+      </a>
+      <button id="installButton" class="button button-subtle hidden" type="button">Install app</button>
+    </header>
+
+    <main class="page">
+      <section class="intro">
+        <div>
+          <p class="eyebrow">THE SHARED MUSIC ROOM</p>
+          <h1>Make the queue together.</h1>
+          <p class="lede">Add YouTube or YouTube Music videos. The host’s visible YouTube player plays the room queue.</p>
+        </div>
+        <div id="connectionPill" class="connection-pill"><span class="status-dot"></span><span>Connecting…</span></div>
+      </section>
+
+      <section id="setupCard" class="card setup-card">
+        <div class="section-heading">
+          <div><p class="eyebrow">START HERE</p><h2>Create a room or join one</h2></div>
+        </div>
+        <div class="room-actions">
+          <div class="action-panel">
+            <h3>Host a room</h3>
+            <p>Create a queue and play it from this device.</p>
+            <label class="field-label" for="hostName">Your name</label>
+            <input id="hostName" class="text-input" maxlength="24" placeholder="Host" autocomplete="nickname" />
+            <button id="createRoomButton" class="button button-primary full-width" type="button">Create room</button>
+          </div>
+          <div class="action-panel join-panel">
+            <h3>Join a room</h3>
+            <p>Enter the room code from your host.</p>
+            <label class="field-label" for="joinCode">Room code</label>
+            <div class="join-row"><input id="joinCode" class="text-input code-input" maxlength="6" placeholder="ABC123" autocomplete="off" /><button id="joinRoomButton" class="button button-secondary" type="button">Join</button></div>
+            <label class="field-label" for="guestName">Your name</label>
+            <input id="guestName" class="text-input" maxlength="24" placeholder="Guest" autocomplete="nickname" />
+          </div>
+        </div>
+        <p id="setupMessage" class="message" role="status"></p>
+        <p class="privacy-note">Each participant can add tracks. Only the host starts and advances playback. YouTube’s standard player and ads are shown.</p>
+      </section>
+
+      <section id="roomView" class="room-view hidden" aria-live="polite">
+        <div class="room-bar card">
+          <div><p class="eyebrow" id="roomRole">ROOM</p><h2>Room <span id="roomCodeDisplay" class="room-code"></span></h2></div>
+          <div class="room-bar-actions"><button id="shareRoomButton" class="button button-secondary" type="button">Share room</button><button id="leaveRoomButton" class="button button-subtle" type="button">Leave</button></div>
+        </div>
+
+        <div class="room-grid">
+          <section class="card player-card">
+            <div class="section-heading player-heading"><div><p class="eyebrow" id="playerEyebrow">HOST PLAYER</p><h2 id="currentTitle">Ready when you are</h2><p id="playerHint" class="muted">Add a song, then tap Start playback. Keep this page visible while it plays.</p></div><span id="playState" class="play-state">Waiting</span></div>
+            <div id="playerFrame" class="player-frame"><div id="youtubePlayer"></div></div>
+            <div id="hostControls" class="host-controls hidden"><button id="startPlaybackButton" class="button button-primary" type="button">Start playback</button><button id="skipButton" class="button button-secondary" type="button">Skip to next</button><span class="muted small">Use the YouTube player for volume.</span></div>
+            <div id="guestPlayerNotice" class="guest-notice hidden"><span class="status-dot"></span><span>The host device is playing this room. Add songs below to request a turn.</span></div>
+          </section>
+
+          <section class="card queue-card">
+            <div class="section-heading queue-heading"><div><p class="eyebrow">UP NEXT</p><h2>Room queue <span id="queueCount" class="count-badge">0</span></h2></div></div>
+            <form id="addSongForm" class="add-song-form">
+              <label class="field-label" for="songUrl">Add a YouTube or YouTube Music link</label>
+              <div class="add-song-row"><input id="songUrl" class="text-input" type="url" placeholder="https://youtu.be/…" autocomplete="url" required /><button class="button button-primary add-button" type="submit" aria-label="Add song">Add</button></div>
+              <input id="songTitle" class="text-input title-input" maxlength="100" placeholder="Song title (optional)" />
+              <p id="addMessage" class="message" role="status"></p>
+            </form>
+            <ol id="queueList" class="queue-list"></ol>
+            <div id="emptyQueue" class="empty-queue"><span>♫</span><p>The queue is empty.</p><p class="muted">Drop in a YouTube link to get things started.</p></div>
+            <p class="queue-footnote">Track links only. Some videos may block embedding or be unavailable in your region.</p>
+          </section>
+        </div>
+      </section>
+      <footer><span>Room Jukebox</span><span>Playback stays in YouTube’s visible embedded player.</span></footer>
+    </main>
+
+    <div id="toast" class="toast hidden" role="status"></div>
+
+    <script src="firebase-config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

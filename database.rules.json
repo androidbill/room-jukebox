@@ -1,0 +1,16 @@
+{
+  "rules": {
+    "rooms": {
+      "$roomCode": {
+        ".read": "auth != null",
+        ".write": "auth != null && ((!data.exists() && newData.child('hostUid').val() === auth.uid) || (data.exists() && data.child('hostUid').val() === auth.uid))",
+        "queue": {
+          "$itemId": {
+            ".write": "auth != null && ((!data.exists() && newData.exists() && newData.child('addedByUid').val() === auth.uid) || (data.exists() && !newData.exists() && (data.child('addedByUid').val() === auth.uid || root.child('rooms').child($roomCode).child('hostUid').val() === auth.uid)))",
+            ".validate": "newData.hasChildren(['videoId', 'url', 'title', 'addedBy', 'addedByUid', 'addedAt']) && newData.child('videoId').isString() && newData.child('videoId').val().matches(/^[A-Za-z0-9_-]{11}$/) && newData.child('url').isString() && newData.child('title').isString() && newData.child('addedBy').isString() && newData.child('addedByUid').isString() && newData.child('addedAt').isNumber()"
+          }
+        }
+      }
+    }
+  }
+}
