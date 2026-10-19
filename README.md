@@ -29,7 +29,9 @@ YouTube's embedded-player policy requires preserving its standard player behavio
 ## Current prototype boundaries
 
 - Queue entries are video IDs, title text (optional), submitter, and YouTube URL.
-- It doesn't use YouTube Data API search/metadata, so guests paste song links rather than search inside the app.
+- Search buttons open YouTube or YouTube Music results for an artist, title, or combined query. Choose one video, then use the system Share menu to send it to the installed Room Jukebox where supported, or copy the link and tap **Paste & Add**. Manual paste into the link field remains available.
 - One host player drives the room. Guest devices contribute; they don't start their own synced playback.
 - Room queue synchronization and host/player behavior need a real multi-device test after Firebase is configured.
 - This PWA can be wrapped in Tauri 2 later if a store-installed native shell is useful; the queue and player stay web-based.
+
+Clipboard access is deliberately user-triggered: browsers do not reliably allow a website to silently read the clipboard when you return from YouTube. The **Paste & Add** button requests the copied text directly from a tap; if the browser blocks that access, paste the link into the field and tap **Add link**. Installed PWAs that support Web Share Target can receive a song directly from YouTube's Share menu; iOS and some browsers may not offer that target, so use copy/paste there.

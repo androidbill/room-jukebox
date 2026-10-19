@@ -69,9 +69,15 @@
 
           <section class="card queue-card">
             <div class="section-heading queue-heading"><div><p class="eyebrow">UP NEXT</p><h2>Room queue <span id="queueCount" class="count-badge">0</span></h2></div></div>
+            <form id="songSearchForm" class="add-song-form">
+              <label class="field-label" for="searchQuery">Search by artist, song title, or both</label>
+              <div class="add-song-row search-row"><input id="searchQuery" class="text-input" type="search" placeholder="e.g. Fleetwood Mac Dreams" /><button id="searchYoutubeButton" class="button button-secondary" type="button">YouTube</button><button id="searchMusicButton" class="button button-secondary" type="button">YouTube Music</button></div>
+              <p class="muted small search-help">Choose a song, then use Share → Room Jukebox if it appears. Otherwise copy its link, return here, and tap Paste &amp; Add.</p>
+            </form>
             <form id="addSongForm" class="add-song-form">
               <label class="field-label" for="songUrl">Add a YouTube or YouTube Music link</label>
-              <div class="add-song-row"><input id="songUrl" class="text-input" type="url" placeholder="https://youtu.be/…" autocomplete="url" required /><button class="button button-primary add-button" type="submit" aria-label="Add song">Add</button></div>
+              <div class="add-song-row"><input id="songUrl" class="text-input" type="url" placeholder="https://youtu.be/…" autocomplete="url" required /></div>
+              <div class="add-song-actions"><button id="pasteAndAddButton" class="button button-secondary" type="button">Paste &amp; Add</button><button class="button button-primary add-button" type="submit" aria-label="Add song">Add link</button></div>
               <input id="songTitle" class="text-input title-input" maxlength="100" placeholder="Song title (optional)" />
               <p id="addMessage" class="message" role="status"></p>
             </form>

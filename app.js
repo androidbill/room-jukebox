@@ -4,7 +4,8 @@
     setupCard: $("setupCard"), roomView: $("roomView"), connection: $("connectionPill"), setupMessage: $("setupMessage"),
     create: $("createRoomButton"), join: $("joinRoomButton"), hostName: $("hostName"), guestName: $("guestName"), joinCode: $("joinCode"),
     roomCode: $("roomCodeDisplay"), role: $("roomRole"), share: $("shareRoomButton"), leave: $("leaveRoomButton"),
-    form: $("addSongForm"), songUrl: $("songUrl"), songTitle: $("songTitle"), addMessage: $("addMessage"), list: $("queueList"),
+    form: $("addSongForm"), searchForm: $("songSearchForm"), searchQuery: $("searchQuery"), searchYoutube: $("searchYoutubeButton"), searchMusic: $("searchMusicButton"),
+    songUrl: $("songUrl"), songTitle: $("songTitle"), pasteAndAdd: $("pasteAndAddButton"), addMessage: $("addMessage"), list: $("queueList"),
     empty: $("emptyQueue"), count: $("queueCount"), hostControls: $("hostControls"), guestNotice: $("guestPlayerNotice"),
     start: $("startPlaybackButton"), skip: $("skipButton"), title: $("currentTitle"), hint: $("playerHint"), state: $("playState"),
     playerEyebrow: $("playerEyebrow"), playerFrame: $("playerFrame"), toast: $("toast"), install: $("installButton")
@@ -13,7 +14,8 @@
   const state = {
     db: null, user: null, roomCode: null, roomRef: null, isHost: false, displayName: "Guest", room: null,
     queue: [], player: null, playerReady: false, playerLoading: false, apiReady: false,
-    currentItemId: null, loadedItemId: null, endedItemId: null, nextNeedsGesture: false, installPrompt: null, roomListener: null
+    currentItemId: null, loadedItemId: null, endedItemId: null, nextNeedsGesture: false, installPrompt: null, roomListener: null,
+    pendingShare: null
   };
 
   function setConnection(text, connected = false) {
@@ -62,6 +64,30 @@
     else id = url.searchParams.get("v") || url.pathname.match(/^\/(?:shorts|embed|live)\/([^/?]+)/)?.[1] || "";
     if (!/^[A-Za-z0-9_-]{11}$/.test(id)) throw new Error("That link needs to point to one YouTube video or song, not only a playlist.");
     return { videoId: id, url: `https://www.youtube.com/watch?v=${id}` };
+  }
+
+  function extractYouTubeUrl(raw) {
+    const value = String(raw || "").trim();
+    try { return parseYouTubeUrl(value).url; } catch {}
+    const candidates = value.match(/https?:\/\/[^\s<>"']+/g) || [];
+    for (const candidate of candidates) {
+      try { return parseYouTubeUrl(candidate.replace(/[),.;!?]+$/g, "")).url; } catch {}
+    }
+    throw new Error("No YouTube video link found. Copy or share a link to one song/video, not a playlist.");
+  }
+
+  function openSearch(engine) {
+    const query = els.searchQuery.value.trim();
+    if (!query) {
+      showMessage(els.addMessage, "Enter an artist, song title, or both to search.");
+      els.searchQuery.focus();
+      return;
+    }
+    const url = engine === "music"
+      ? `https://music.youtube.com/search?q=${encodeURIComponent(query)}`
+      : `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    showMessage(els.addMessage, "Choose a song, copy or share its video link, then return here to add it.", false);
   }
 
   function loadYouTubeApi() {
@@ -232,6 +258,7 @@
       showRoom();
       renderCurrent();
       setConnection("Room connected", true);
+      if (state.pendingShare) addPendingShare();
       if (state.isHost && state.apiReady && !state.player) createPlayer();
     };
     ref.on("value", state.roomListener, error => showMessage(els.setupMessage, `Could not read the room: ${error.message}`));
@@ -260,6 +287,7 @@
       }
       if (!created || !ref) throw new Error("Could not reserve a room code. Please try again.");
       state.roomCode = code;
+      localStorage.setItem("jukeboxRoomCode", code);
       state.displayName = cleanName(els.hostName.value, "Host");
       history.replaceState({}, "", `${location.pathname}?room=${code}`);
       subscribeRoom(ref);
@@ -283,6 +311,7 @@
       const snapshot = await ref.once("value");
       if (!snapshot.exists()) throw new Error("Room not found. Check the code with your host.");
       state.roomCode = code;
+      localStorage.setItem("jukeboxRoomCode", code);
       state.displayName = cleanName(els.guestName.value, "Guest");
       history.replaceState({}, "", `${location.pathname}?room=${code}`);
       subscribeRoom(ref);
@@ -290,12 +319,14 @@
     finally { button.disabled = false; }
   }
 
-  async function addSong(event) {
-    event.preventDefault();
-    if (!state.roomRef || !state.user) return;
+  async function queueSong(rawUrl, titleOverride = "") {
+    if (!state.roomRef || !state.user) {
+      showMessage(els.addMessage, "Join or create a room before adding a song.");
+      return false;
+    }
     let parsed;
-    try { parsed = parseYouTubeUrl(els.songUrl.value); }
-    catch (error) { showMessage(els.addMessage, error.message); return; }
+    try { parsed = parseYouTubeUrl(extractYouTubeUrl(rawUrl)); }
+    catch (error) { showMessage(els.addMessage, error.message); return false; }
     const submit = els.form.querySelector("button[type=submit]");
     submit.disabled = true;
     showMessage(els.addMessage, "Adding to the room queue…", false);
@@ -303,7 +334,7 @@
     const item = {
       videoId: parsed.videoId,
       url: parsed.url,
-      title: els.songTitle.value.trim().slice(0, 100) || "",
+      title: String(titleOverride || els.songTitle.value).trim().slice(0, 100) || "",
       addedBy: state.displayName,
       addedByUid: state.user.uid,
       addedAt: firebase.database.ServerValue.TIMESTAMP
@@ -312,8 +343,42 @@
       await itemRef.set(item);
       els.form.reset();
       showMessage(els.addMessage, "Added to the queue.", false);
-    } catch (error) { showMessage(els.addMessage, `Could not add song: ${error.message}`); }
+      return true;
+    } catch (error) { showMessage(els.addMessage, `Could not add song: ${error.message}`); return false; }
     finally { submit.disabled = false; }
+  }
+
+  async function addSong(event) {
+    event.preventDefault();
+    await queueSong(els.songUrl.value);
+  }
+
+  async function pasteAndAdd() {
+    if (!state.roomRef || !state.user) {
+      showMessage(els.addMessage, "Join or create a room before adding a song.");
+      return;
+    }
+    if (!navigator.clipboard?.readText) {
+      showMessage(els.addMessage, "Clipboard access is unavailable here. Paste the link into the box below.");
+      els.songUrl.focus();
+      return;
+    }
+    els.pasteAndAdd.disabled = true;
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) throw new Error("The clipboard is empty. Copy a YouTube song link first.");
+      await queueSong(text);
+    } catch (error) {
+      showMessage(els.addMessage, `${error.message || "Clipboard access was blocked."} Paste the copied link into the box below and tap Add link.`);
+      els.songUrl.focus();
+    } finally { els.pasteAndAdd.disabled = false; }
+  }
+
+  async function addPendingShare() {
+    const pending = state.pendingShare;
+    if (!pending || !state.roomRef || !state.user) return;
+    state.pendingShare = null;
+    await queueSong(pending.text, pending.title);
   }
 
   async function removeQueueItem(itemId) {
@@ -390,6 +455,7 @@
     state.roomRef = null;
     state.roomListener = null;
     state.roomCode = null;
+    localStorage.removeItem("jukeboxRoomCode");
     state.room = null;
     state.queue = [];
     state.isHost = false;
@@ -444,7 +510,11 @@
     els.create.addEventListener("click", createRoom);
     els.join.addEventListener("click", () => joinRoom(els.joinCode.value));
     els.joinCode.addEventListener("input", () => { els.joinCode.value = els.joinCode.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, "").slice(0, 6); });
+    els.searchForm.addEventListener("submit", event => { event.preventDefault(); openSearch("youtube"); });
     els.form.addEventListener("submit", addSong);
+    els.searchYoutube.addEventListener("click", () => openSearch("youtube"));
+    els.searchMusic.addEventListener("click", () => openSearch("music"));
+    els.pasteAndAdd.addEventListener("click", pasteAndAdd);
     els.start.addEventListener("click", startPlayback);
     els.skip.addEventListener("click", advanceQueue);
     els.share.addEventListener("click", shareRoom);
@@ -463,7 +533,10 @@
       firebase.auth().signInAnonymously().then(credential => {
         state.user = credential.user;
         setConnection("Ready to make a room", true);
-        const code = new URLSearchParams(location.search).get("room");
+        const params = new URLSearchParams(location.search);
+        const sharedText = params.get("url") || params.get("text");
+        if (sharedText) state.pendingShare = { text: sharedText, title: params.get("title") || "" };
+        const code = params.get("room") || localStorage.getItem("jukeboxRoomCode");
         if (code) { els.joinCode.value = code.toUpperCase(); joinRoom(code); }
       }).catch(error => {
         setConnection("Sign-in error");
