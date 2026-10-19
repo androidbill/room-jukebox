@@ -86,8 +86,11 @@
     const url = engine === "music"
       ? `https://music.youtube.com/search?q=${encodeURIComponent(query)}`
       : `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`;
-    window.open(url, "_blank", "noopener,noreferrer");
-    showMessage(els.addMessage, "Choose a song, copy or share its video link, then return here to add it.", false);
+    // Navigate this tab instead of opening a popup. Android can block window.open
+    // from an installed PWA or fail to hand the new tab off to YouTube / YouTube Music.
+    // Same-tab navigation also lets Android's verified app links open the native app.
+    showMessage(els.addMessage, "Opening search… Use Back to return here after copying or sharing a song link.", false);
+    window.location.assign(url);
   }
 
   function loadYouTubeApi() {
