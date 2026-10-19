@@ -4,17 +4,15 @@ A mobile and desktop installable web app for a shared YouTube / YouTube Music li
 
 This is a queueing/player prototype, not an adapter to the YouTube Music mobile app. Every queued item must be a YouTube video/song URL with a video ID. Playlist-only URLs are not yet supported. YouTube decides which videos are embeddable and may serve ads; the app does not alter the player or block ads. Playback requires the page/player to remain visible. Browser autoplay rules can require the host to tap Start/Resume. Some videos may disable embedding, be age-restricted, or be unavailable in a region.
 
-## Firebase setup for this public copy
+## Firebase deployment
 
-This repository is connected to the new Firebase project `room-jukebox-pwa-2026`. Its web app and Hosting site are registered. The default Realtime Database and Anonymous sign-in provider still need to be enabled in Firebase Console before rooms can work.
+The app is live at **https://room-jukebox-pwa-2026.web.app** and uses the new Firebase project `room-jukebox-pwa-2026`. The project's default Realtime Database is in `us-central1`; Anonymous sign-in is enabled; and `database.rules.json` is deployed. The `.firebaserc` alias points only to this project.
 
-1. Open [the Room Jukebox Firebase project](https://console.firebase.google.com/project/room-jukebox-pwa-2026/overview).
-2. In **Authentication → Sign-in method**, enable **Anonymous**.
-3. In **Build → Realtime Database**, create the project's default database in `us-central1`. The `databaseURL` for that location is already set in `firebase-config.js`. Do not create an extra named database.
-4. From this folder, run `npx firebase-tools deploy --only hosting,database --project room-jukebox-pwa-2026` to publish the site and its rules. The project alias in `.firebaserc` also points only to this new project.
-5. Open the Hosting URL on the host and guests. On phones, use the browser's **Add to Home Screen / Install app** action if desired. Create a room on the host device, share the invite, and keep the host page visible while music plays.
+This project is set up for Firebase's no-cost Spark plan. Realtime Database includes up to 1 GB stored and 10 GB/month downloaded, with a 100 simultaneous-connection limit on Spark. If the no-cost quota is exceeded, Firebase shuts off that product for the rest of the month; this project has not been linked to a billing account. See [Firebase plan details](https://firebase.google.com/pricing).
 
-The Firebase web configuration in `firebase-config.js` is public client configuration. Never put a service-account key or other server secret in the app or public repository.
+To publish later changes, install Node.js, then run `npx firebase-tools login` and `npx firebase-tools deploy --only auth,database,hosting --project room-jukebox-pwa-2026`. Keep `firebase-config.js` as public client configuration only; never put a service-account key or other server secret in the app or public repository.
+
+Open the Hosting URL on the host and guests. On phones, use the browser's **Add to Home Screen / Install app** action if desired. Create a room on the host device, share the invite, and keep the host page visible while music plays.
 
 For a private gathering prototype, these rules allow any signed-in guest to read room data, add a queue item as themselves, and remove their own item. Only the host can change the playing item or remove other guests' items. Anonymous sign-in limits casual writes to signed-in app identities, but invite codes are not strong authentication; don't store sensitive data in rooms. Before wider/public use, add Firebase App Check, room expiration/cleanup, abuse controls, rate limits, and moderator controls.
 
